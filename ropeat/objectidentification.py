@@ -3,11 +3,25 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, confusion_matrix, ConfusionMatrixDisplay, recall_score
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.model_selection import train_test_split
+<<<<<<< HEAD
 import pandas as pd
 import numpy as np
 
 # Internal imports
 from .utils import train_config
+=======
+import pickle as pkl
+import pandas as pd
+import numpy as np
+import os
+from operator import methodcaller
+
+# Astro imports
+from astropy.table import Table
+
+# Internal imports
+from .utils import train_config, predict_config
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)
 from .plotting import classification_contours
 
 """
@@ -49,4 +63,41 @@ def plot_contours(data, model, **kwargs):
 
 def plot_confusionmatrix(data):
     cm = confusion_matrix(data['y_test'], data['y_pred'])
+<<<<<<< HEAD
     ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=['Galaxy', 'Star']).plot()
+=======
+    ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=['Galaxy', 'Star']).plot()
+
+def classify(predict_table, modelname):
+    roman_bands = ['R062', 'Z087', 'Y106', 'J129', 'H158', 'F184', 'W146', 'K213']
+    if modelname in roman_bands:
+        cdir = os.path.dirname(os.path.abspath(__file__))
+        modelpath = os.path.join(cdir,f'models/{modelname}_objid_model.pkl')
+    else:
+        modelpath = copy(modelname)
+    
+    modelfile = open(modelpath, 'rb')
+    model = pkl.load(modelfile)
+
+    predict_table = predict_table.to_pandas()
+    X = predict_table[['peak','flux','ellipticity']]
+    X_shape = X.shape
+    boolean_array = np.empty(X_shape)
+
+    for i, col in enumerate(X):
+        boolean_array[:,i] = np.isnan(X[col])
+
+    method_any = methodcaller('any')
+    nanshere = list(map(method_any, boolean_array))
+    nonanshere = ~np.array(nanshere)
+    nonansidx = np.where(nonanshere)[0]
+
+    predicted = model.predict(X.iloc[nonansidx])
+    pred_type = np.array(list(map(predict_config,predicted)))
+
+    predict_table = Table.from_pandas(predict_table)
+    predict_table['predicted objtype'] = 'other'
+    predict_table['predicted objtype'][nonansidx] = pred_type
+    
+    return predict_table
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)

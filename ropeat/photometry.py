@@ -14,8 +14,13 @@ from photutils.psf import EPSFBuilder, extract_stars, PSFPhotometry
 
 roman_bands = ['R062', 'Z087', 'Y106', 'J129', 'H158', 'F184', 'W146', 'K213']
 
+<<<<<<< HEAD
 def ap_phot(scienceimage,coords,ap_r=3,
             bkg_estimator=MMMBackground(), box_size=(50,50),
+=======
+def ap_phot(scienceimage,coords,wcs,
+            ap_r=3, bkg_estimator=MMMBackground(), box_size=(50,50),
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)
             filter_size=(3,3), method='subpixel',subpixels=5,
             merge_tables=True):
     """_summary_
@@ -65,18 +70,34 @@ def ap_phot(scienceimage,coords,ap_r=3,
             
     return ap_results
 
+<<<<<<< HEAD
 def psf_phot(scienceimage, coords, bkg_estimator=MMMBackground(), box_size=(50,50),
             bkg_annulus=(50.0,80.0), filter_size=(3,3), ap_r=3, saturation=99e3, noise=10**4,
             fwhm=3.0, fit_shape=(5,5), method='subpixel', subpixels=5,
             oversampling=3, maxiters=10, exclude_duplicates=False, plot_epsf=False):
+=======
+def psf_phot(scienceimage,coords,wcs, 
+            bkg_annulus=(50.0,80.0), saturation=0.9e5, noise=0.5e5,
+            fwhm=3.0, fit_shape=(5,5), oversampling=3, maxiters=10, 
+            exclude_duplicates=False, plot_epsf=False, 
+            ap_r=3, bkg_estimator=MMMBackground(), box_size=(50,50),
+            filter_size=(3,3), method='subpixel',subpixels=5):
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)
 
     mean, median, stddev = sigma_clipped_stats(scienceimage)
     daofind = DAOStarFinder(fwhm=fwhm,threshold = 5.*(stddev))
     
+<<<<<<< HEAD
     ap_results = ap_phot(scienceimage,coords,ap_r=ap_r,
             bkg_estimator=bkg_estimator, box_size=box_size,
             filter_size=filter_size, method=method,subpixels=subpixels,
             merge_tables=True)
+=======
+    ap_results = ap_phot(scienceimage,coords,wcs,
+                        ap_r=ap_r, bkg_estimator=bkg_estimator,
+                        box_size=box_size, filter_size=filter_size,
+                        method=method, subpixels=subpixels, merge_tables=True)
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)
 
     psfstars = Table({'x': ap_results['xcentroid'], 'y': ap_results['ycentroid'],
                         'flux': ap_results['aperture_sum'], 'max': ap_results['max']})
@@ -126,6 +147,7 @@ def psf_phot(scienceimage, coords, bkg_estimator=MMMBackground(), box_size=(50,5
     localbkg = _localbkg(data=scienceimage,x=ap_results['xcentroid'],y=ap_results['ycentroid'])
     psfphot = PSFPhotometry(psf_func, fit_shape, localbkg_estimator=_localbkg,
                             finder=daofind, aperture_radius=ap_r)
+<<<<<<< HEAD
     psfphot['localbkg'] = localbkg
     psf_results = psfphot(scienceimage, init_params=ap_results)
 
@@ -186,6 +208,37 @@ def psf_phot(scienceimage, coords, bkg_estimator=MMMBackground(), box_size=(50,5
 #         results_table[f'{self.band}_psf_mag_err'] = np.sqrt((1.09/results_table[f'{self.band}_psf_flux'])**2*results_table[f'{self.band}_psf_flux_err']**2)
 
 #     if zpt == 'truth':
+=======
+
+    psf_results = psfphot(scienceimage, init_params=ap_results)
+    psf_results['localbkg'] = localbkg
+
+    radec = wcs.pixel_to_world(psf_results['x_fit'], psf_results['y_fit'])
+
+    psf_results['ra'] = radec.ra.value
+    psf_results['dec'] = radec.dec.value
+
+    return psf_results
+
+def convert_flux_to_mag(fluxtab, zpt=False, truth=None):
+    """
+    Input the astropy table from psf_results.
+
+    """
+
+    fluxtab['mag_fit'] = -2.5*np.log10(fluxtab['flux_fit'])
+    fluxtab['mag_err'] = np.sqrt((1.09/fluxtab['flux_fit'])**2*fluxtab['flux_err']**2)
+
+    if zpt:
+        if truth is None:
+            raise ValueError('You need to provide a truth catalog if you want to zero point the magnitudes.')
+
+        else:
+            print('YOU HAVE TO CROSSMATCH BEFORE YOU ZERO POINT')
+    return fluxtab
+
+        #     if zpt == 'truth':
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)
 #         ap_zpt_mask = np.logical_and(results_table[f'{self.band}_ap_mag']>-11, results_table[f'{self.band}_ap_mag']<-9)
 #         psf_zpt_mask = np.logical_and(results_table[f'{self.band}_psf_mag']>-11, results_table[f'{self.band}_psf_mag']<-9)
 
@@ -196,6 +249,7 @@ def psf_phot(scienceimage, coords, bkg_estimator=MMMBackground(), box_size=(50,5
         
 #         results_table[f'{self.band}_ap_mag'] -= ap_zpt
 #         results_table[f'{self.band}_psf_mag'] -= psf_zpt
+<<<<<<< HEAD
         
 #     elif zpt == 'galsim':            
 #         maglims = [20,22.5] # This is the median of the un-zeropointed data +/- 1 standard deviation, roughly. 
@@ -229,6 +283,27 @@ def psf_phot(scienceimage, coords, bkg_estimator=MMMBackground(), box_size=(50,5
 #     results_table['psfphot_flags'] = self.psf_phot_results['flags']
 
 #     results_table.write(savepath, format='csv', overwrite=overwrite)
+=======
+
+    return fluxtab
+
+def crossmatch_truth(science,truth,seplimit=0.1):
+    """
+    truth should be the truth catalog (astropy table) for the image corresponding to science, which is an astropy table. 
+    (the output of psf_phot)
+    """
+
+    truthcoords = SkyCoord(ra=truth['ra_truth']*u.degree, dec=truth['dec']*u.degree)
+    scicoords = SkyCoord(ra=science['ra']*u.degree, dec=science['dec']*u.degree)
+    truth_idx, sci_idx, angsep, dist3d = search_around_sky(truthcoords,scicoords,seplimit=seplimit(u.arcsec))
+
+    truth_reduced = truth[truth_idx]
+    sci_reduced = science[sci_idx]
+
+    truth[[sci_reduced.colnames]][truth_idx] = sci_reduced
+
+    return truth
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)
 
 # def crossmatch_truth(truth_filepath,results_filepaths,savename,overwrite=True,seplimit=0.1,psf=True,verbose=True,temp_file_path=None):
 #     """
@@ -335,7 +410,11 @@ def psf_phot(scienceimage, coords, bkg_estimator=MMMBackground(), box_size=(50,5
                     
 #                 # Collect RA/dec into a string into one column. 
 #                 for c in ['ra','dec']:
+<<<<<<< HEAD
 #                     tlist = list(tr_tab[f'{c}_all'])
+=======
+#                     tlist = list(tr_tab[f'{c}_all'])rm 
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)
 #                     tlist_reduced = list(np.array(tlist)[tr_idx])
 #                     clist = list(check[c])
 #                     clist_reduced = list(np.array(clist)[check_idx])

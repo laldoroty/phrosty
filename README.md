@@ -1,6 +1,14 @@
 # ropeat
 Basic package for Roman photometry, associated with Aldoroty et al. 2024 in prep. 
 
+<<<<<<< HEAD
+=======
+Install by cloning this directory, navigating to that directory in your local terminal, and then using
+```
+pip install -e .
+```
+
+>>>>>>> 0e7c526 (first commit new branch fixing model push issues due to large file size)
 This package is modular. Modules are compatible with each other, and they interface
 easily, but you do not need to use all the modules. It contains:
 ```
